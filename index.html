@@ -1,37 +1,895 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>VOICE. THINK. AUTOMATE.</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VOICE. THINK. AUTOMATE. — Offline-First Voice Assistant</title>
+  <style>
+    /* ── Design tokens ─────────────────────────────────────────────── */
+    :root {
+      --cream:     #F7F5F0;
+      --ash:       #D6D3CD;
+      --charcoal:  #2C2C2E;
+      --mid:       #5A5A60;
+      --blue:      #4A90D9;
+      --blue-dim:  #3A7ABD;
+      --blue-glow: rgba(74,144,217,.15);
+      --card-bg:   #FFFFFF;
+      --border:    #E4E0D8;
+      --shadow:    0 4px 24px rgba(44,44,46,.08);
+      --radius:    16px;
+      --font:      'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --cream:    #1C1C1E;
+        --ash:      #3A3A3C;
+        --charcoal: #F2F2F7;
+        --mid:      #AEAEB2;
+        --card-bg:  #2C2C2E;
+        --border:   #3A3A3C;
+        --blue-glow:rgba(74,144,217,.20);
+      }
+    }
+    :root[data-theme="dark"] {
+      --cream:    #1C1C1E;
+      --ash:      #3A3A3C;
+      --charcoal: #F2F2F7;
+      --mid:      #AEAEB2;
+      --card-bg:  #2C2C2E;
+      --border:   #3A3A3C;
+      --blue-glow:rgba(74,144,217,.20);
+    }
+
+    /* ── Reset ─────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font);
+      background: var(--cream);
+      color: var(--charcoal);
+      line-height: 1.6;
+      transition: background .3s, color .3s;
+    }
+    a { color: var(--blue); text-decoration: none; }
+    button { cursor: pointer; font-family: var(--font); }
+    img { max-width: 100%; }
+
+    /* ── Nav ───────────────────────────────────────────────────────── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 5vw; height: 64px;
+      background: rgba(247,245,240,.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      transition: background .3s;
+    }
+    :root[data-theme="dark"] nav,
+    @media (prefers-color-scheme: dark) { nav { background: rgba(28,28,30,.85); } }
+    .nav-logo { display:flex; align-items:center; gap: 10px; font-weight:700; font-size:1rem; letter-spacing:.02em; }
+    .nav-logo svg { flex-shrink:0; }
+    .nav-links { display:flex; gap:28px; align-items:center; }
+    .nav-links a { color: var(--mid); font-size:.9rem; font-weight:500; transition:color .2s; }
+    .nav-links a:hover { color: var(--blue); }
+    .theme-btn {
+      background:none; border:1px solid var(--border); border-radius:8px;
+      padding:5px 10px; font-size:.8rem; color:var(--mid);
+      transition: border-color .2s, color .2s;
+    }
+    .theme-btn:hover { border-color:var(--blue); color:var(--blue); }
+    .hamburger { display:none; background:none; border:none; flex-direction:column; gap:5px; padding:4px; }
+    .hamburger span { display:block; width:22px; height:2px; background:var(--charcoal); border-radius:2px; transition:.3s; }
+
+    /* ── Section wrapper ───────────────────────────────────────────── */
+    section { padding: 96px 5vw; }
+    .section-label {
+      display:inline-block; font-size:.75rem; font-weight:700;
+      letter-spacing:.12em; text-transform:uppercase;
+      color: var(--blue); margin-bottom:12px;
+    }
+    h1 { font-size: clamp(2.4rem,6vw,4.2rem); font-weight:800; letter-spacing:-.02em; line-height:1.1; }
+    h2 { font-size: clamp(1.6rem,3vw,2.4rem); font-weight:700; letter-spacing:-.01em; }
+    h3 { font-size: 1.1rem; font-weight:700; }
+    p   { color: var(--mid); }
+
+    /* ── Hero ──────────────────────────────────────────────────────── */
+    #hero {
+      min-height: 92vh; display:flex; align-items:center;
+      flex-wrap:wrap; gap:48px; padding-top:80px; padding-bottom:80px;
+    }
+    .hero-copy { flex:1 1 340px; }
+    .hero-copy h1 span { color:var(--blue); }
+    .hero-copy p { font-size:1.05rem; max-width:500px; margin:20px 0 36px; }
+    .hero-btns { display:flex; gap:14px; flex-wrap:wrap; }
+    .btn-primary {
+      background:var(--blue); color:#fff; border:none;
+      padding:14px 28px; border-radius:12px; font-size:.95rem; font-weight:600;
+      transition:background .2s, transform .15s, box-shadow .2s;
+      box-shadow: 0 4px 16px var(--blue-glow);
+    }
+    .btn-primary:hover { background:var(--blue-dim); transform:translateY(-1px); box-shadow:0 8px 24px var(--blue-glow); }
+    .btn-secondary {
+      background:none; color:var(--charcoal); border:2px solid var(--border);
+      padding:14px 28px; border-radius:12px; font-size:.95rem; font-weight:600;
+      transition:border-color .2s, color .2s;
+    }
+    .btn-secondary:hover { border-color:var(--blue); color:var(--blue); }
+
+    /* ── Mic illustration ──────────────────────────────────────────── */
+    .hero-visual { flex:1 1 300px; display:flex; justify-content:center; align-items:center; }
+    .mic-wrap {
+      position:relative; width:260px; height:260px;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .ring {
+      position:absolute; border-radius:50%; border:2px solid var(--blue);
+      opacity:0; animation:ripple 3s infinite ease-out;
+    }
+    .ring:nth-child(1){ width:100%;height:100%; animation-delay:0s; }
+    .ring:nth-child(2){ width:80%;height:80%; animation-delay:.8s; }
+    .ring:nth-child(3){ width:60%;height:60%; animation-delay:1.6s; }
+    @keyframes ripple {
+      0%   { transform:scale(.8); opacity:.5; }
+      100% { transform:scale(1.2); opacity:0; }
+    }
+    .mic-circle {
+      width:120px; height:120px; border-radius:50%;
+      background:var(--blue); display:flex; align-items:center; justify-content:center;
+      box-shadow: 0 8px 32px var(--blue-glow);
+      position:relative; z-index:2;
+    }
+
+    /* waveform bars below mic */
+    .waveform { display:flex; gap:4px; align-items:center; margin-top:28px; justify-content:center; }
+    .bar {
+      width:4px; background:var(--blue); border-radius:4px;
+      animation:wave 1.2s infinite ease-in-out;
+      opacity:.6;
+    }
+    .bar:nth-child(1){ height:12px; animation-delay:.0s; }
+    .bar:nth-child(2){ height:24px; animation-delay:.1s; }
+    .bar:nth-child(3){ height:36px; animation-delay:.2s; }
+    .bar:nth-child(4){ height:20px; animation-delay:.3s; }
+    .bar:nth-child(5){ height:32px; animation-delay:.4s; }
+    .bar:nth-child(6){ height:16px; animation-delay:.5s; }
+    .bar:nth-child(7){ height:28px; animation-delay:.6s; }
+    .bar:nth-child(8){ height:12px; animation-delay:.7s; }
+    @keyframes wave {
+      0%,100% { transform:scaleY(1); }
+      50%      { transform:scaleY(2); }
+    }
+
+    /* ── Dashboard section ─────────────────────────────────────────── */
+    #dashboard { background:var(--card-bg); border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+    .dashboard-grid { display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-top:40px; }
+    @media(max-width:780px){ .dashboard-grid{ grid-template-columns:1fr; } }
+
+    .panel {
+      background:var(--cream); border:1px solid var(--border);
+      border-radius:var(--radius); padding:24px;
+      box-shadow:var(--shadow);
+    }
+    .panel h3 { margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+
+    /* mic button */
+    .mic-btn-wrap { display:flex; flex-direction:column; align-items:center; gap:16px; }
+    .mic-btn {
+      width:88px; height:88px; border-radius:50%; border:none;
+      background:var(--blue); display:flex; align-items:center; justify-content:center;
+      box-shadow:0 4px 24px var(--blue-glow); transition:transform .15s, box-shadow .2s, background .2s;
+    }
+    .mic-btn:hover { transform:scale(1.05); box-shadow:0 8px 32px var(--blue-glow); }
+    .mic-btn.listening { background:#e05252; animation:pulse .8s infinite alternate; }
+    @keyframes pulse { to { box-shadow:0 0 0 12px rgba(224,82,82,.15); } }
+
+    .status-badge {
+      display:inline-flex; align-items:center; gap:6px;
+      padding:4px 12px; border-radius:20px; font-size:.78rem; font-weight:600;
+    }
+    .status-badge.idle    { background:var(--ash); color:var(--mid); }
+    .status-badge.listen  { background:#d1fae5; color:#065f46; }
+    .status-badge.proc    { background:#dbeafe; color:#1e40af; }
+    .status-badge.done    { background:#dcfce7; color:#166534; }
+    .status-badge.err     { background:#fee2e2; color:#991b1b; }
+    .dot { width:7px; height:7px; border-radius:50%; background:currentColor; }
+
+    /* transcript / response */
+    .transcript-box, .response-box {
+      min-height:60px; border:1px solid var(--border); border-radius:10px;
+      padding:12px 14px; font-size:.9rem; margin-top:12px;
+      background:var(--card-bg); color:var(--charcoal);
+      transition:border-color .2s;
+    }
+    .transcript-box.active { border-color:var(--blue); }
+
+    /* quick commands */
+    .quick-cmds { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+    .qcmd {
+      padding:6px 14px; border-radius:20px; border:1px solid var(--border);
+      font-size:.82rem; font-weight:600; background:var(--card-bg); color:var(--charcoal);
+      transition:background .2s, border-color .2s, color .2s;
+    }
+    .qcmd:hover { background:var(--blue); border-color:var(--blue); color:#fff; }
+
+    /* command history */
+    .history-list { list-style:none; display:flex; flex-direction:column; gap:8px; margin-top:12px; max-height:220px; overflow-y:auto; }
+    .history-item {
+      display:flex; justify-content:space-between; align-items:center;
+      padding:8px 12px; border-radius:8px; font-size:.84rem;
+      background:var(--card-bg); border:1px solid var(--border);
+    }
+    .hist-status { font-size:.72rem; font-weight:700; padding:2px 8px; border-radius:10px; }
+    .hist-status.ok  { background:#dcfce7; color:#166534; }
+    .hist-status.err { background:#fee2e2; color:#991b1b; }
+    .hist-status.sim { background:#dbeafe; color:#1e40af; }
+
+    /* demo notice */
+    .demo-notice {
+      background:var(--blue-glow); border:1px solid rgba(74,144,217,.3);
+      border-radius:10px; padding:10px 16px; font-size:.83rem;
+      color:var(--blue); margin-bottom:16px; font-weight:500;
+    }
+
+    /* ── Example commands ──────────────────────────────────────────── */
+    #examples .example-grid { display:flex; flex-wrap:wrap; gap:14px; margin-top:32px; }
+    .example-card {
+      flex:1 1 160px; background:var(--card-bg); border:1px solid var(--border);
+      border-radius:var(--radius); padding:20px; display:flex; flex-direction:column;
+      gap:8px; cursor:pointer; transition:border-color .2s, box-shadow .2s, transform .15s;
+      box-shadow:var(--shadow);
+    }
+    .example-card:hover { border-color:var(--blue); box-shadow:0 8px 32px var(--blue-glow); transform:translateY(-2px); }
+    .example-card .cmd-label { font-size:.75rem; font-weight:700; color:var(--blue); text-transform:uppercase; letter-spacing:.08em; }
+    .example-card .cmd-text  { font-size:.95rem; font-weight:600; font-style:italic; color:var(--charcoal); }
+    .example-card .cmd-desc  { font-size:.82rem; color:var(--mid); }
+
+    /* ── Features ──────────────────────────────────────────────────── */
+    #features .feat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:20px; margin-top:40px; }
+    .feat-card {
+      background:var(--card-bg); border:1px solid var(--border);
+      border-radius:var(--radius); padding:28px; box-shadow:var(--shadow);
+      transition:transform .2s, box-shadow .2s;
+    }
+    .feat-card:hover { transform:translateY(-3px); box-shadow:0 12px 36px rgba(44,44,46,.1); }
+    .feat-icon { font-size:1.8rem; margin-bottom:14px; }
+    .feat-badge {
+      display:inline-block; font-size:.68rem; font-weight:700; text-transform:uppercase;
+      letter-spacing:.08em; padding:2px 8px; border-radius:6px; margin-top:10px;
+    }
+    .feat-badge.live    { background:#dcfce7; color:#166534; }
+    .feat-badge.planned { background:#fef9c3; color:#854d0e; }
+
+    /* ── How it works ──────────────────────────────────────────────── */
+    #how .flow {
+      display:flex; flex-wrap:wrap; gap:0; margin-top:48px;
+      justify-content:center; align-items:stretch;
+    }
+    .flow-step {
+      flex:1 1 130px; display:flex; flex-direction:column; align-items:center;
+      text-align:center; padding:24px 16px; position:relative;
+    }
+    .flow-step:not(:last-child)::after {
+      content:'→'; position:absolute; right:-12px; top:50%; transform:translateY(-50%);
+      font-size:1.4rem; color:var(--ash); font-weight:300;
+    }
+    @media(max-width:600px){ .flow-step:not(:last-child)::after{ display:none; } }
+    .flow-icon {
+      width:60px; height:60px; border-radius:50%;
+      background:var(--blue-glow); border:2px solid rgba(74,144,217,.3);
+      display:flex; align-items:center; justify-content:center;
+      font-size:1.5rem; margin-bottom:14px;
+    }
+    .flow-step h4 { font-size:.88rem; font-weight:700; margin-bottom:6px; }
+    .flow-step p  { font-size:.78rem; color:var(--mid); }
+
+    /* ── Architecture ──────────────────────────────────────────────── */
+    #arch { background:var(--card-bg); border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+    .arch-diagram {
+      margin-top:40px; border:1px solid var(--border); border-radius:var(--radius);
+      overflow:hidden; box-shadow:var(--shadow);
+    }
+    .arch-layer {
+      display:flex; flex-wrap:wrap; gap:0;
+      border-bottom:1px solid var(--border);
+    }
+    .arch-layer:last-child{ border-bottom:none; }
+    .arch-label {
+      width:160px; flex-shrink:0; padding:20px 24px;
+      background:var(--blue-glow); display:flex; align-items:center;
+      font-size:.8rem; font-weight:700; color:var(--blue); text-transform:uppercase; letter-spacing:.08em;
+      border-right:1px solid var(--border);
+    }
+    .arch-cells { display:flex; flex:1; flex-wrap:wrap; }
+    .arch-cell {
+      flex:1 1 140px; padding:18px 20px;
+      border-right:1px solid var(--border);
+    }
+    .arch-cell:last-child{ border-right:none; }
+    .arch-cell h4 { font-size:.85rem; font-weight:700; margin-bottom:4px; }
+    .arch-cell p  { font-size:.75rem; color:var(--mid); }
+
+    /* ── Benefits ──────────────────────────────────────────────────── */
+    #benefits .benefit-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:20px; margin-top:40px; }
+    .benefit-card {
+      background:var(--card-bg); border:1px solid var(--border);
+      border-radius:var(--radius); padding:24px; box-shadow:var(--shadow);
+    }
+    .benefit-icon { font-size:1.6rem; margin-bottom:12px; }
+
+    /* ── Roadmap ───────────────────────────────────────────────────── */
+    #roadmap .timeline { display:flex; flex-direction:column; gap:0; margin-top:40px; max-width:640px; }
+    .tl-item { display:flex; gap:20px; }
+    .tl-left { display:flex; flex-direction:column; align-items:center; }
+    .tl-dot {
+      width:14px; height:14px; border-radius:50%; border:3px solid var(--blue);
+      background:var(--blue); flex-shrink:0; margin-top:4px;
+    }
+    .tl-dot.future { background:var(--card-bg); }
+    .tl-line { flex:1; width:2px; background:var(--border); margin:4px 0; min-height:40px; }
+    .tl-item:last-child .tl-line{ display:none; }
+    .tl-body { padding-bottom:28px; }
+    .tl-body h4 { font-size:.95rem; font-weight:700; }
+    .tl-body p  { font-size:.83rem; color:var(--mid); margin-top:4px; }
+    .tl-tag {
+      display:inline-block; font-size:.68rem; font-weight:700;
+      text-transform:uppercase; letter-spacing:.08em; padding:2px 8px; border-radius:6px;
+      margin-top:6px;
+    }
+    .tl-tag.done    { background:#dcfce7; color:#166534; }
+    .tl-tag.in-prog { background:#dbeafe; color:#1e40af; }
+    .tl-tag.planned { background:#fef9c3; color:#854d0e; }
+
+    /* ── Team ──────────────────────────────────────────────────────── */
+    #team { text-align:center; }
+    .team-badge {
+      display:inline-block; background:var(--blue); color:#fff;
+      font-size:1rem; font-weight:700; padding:10px 28px; border-radius:30px;
+      margin:20px 0 10px; letter-spacing:.04em;
+    }
+    .hackathon-tag { color:var(--mid); font-size:.9rem; }
+
+    /* ── Footer ────────────────────────────────────────────────────── */
+    footer {
+      background:var(--charcoal); color:#fff;
+      padding:48px 5vw 32px;
+    }
+    .footer-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:32px; }
+    @media(max-width:640px){ .footer-grid{ grid-template-columns:1fr; } }
+    footer h4 { font-size:.85rem; font-weight:700; margin-bottom:12px; opacity:.6; text-transform:uppercase; letter-spacing:.08em; }
+    footer ul { list-style:none; display:flex; flex-direction:column; gap:8px; }
+    footer ul a { color:rgba(255,255,255,.7); font-size:.88rem; }
+    footer ul a:hover { color:#fff; }
+    .footer-bottom { margin-top:40px; padding-top:20px; border-top:1px solid rgba(255,255,255,.1); display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+    .footer-bottom p { font-size:.78rem; color:rgba(255,255,255,.4); }
+
+    /* ── Utilities ─────────────────────────────────────────────────── */
+    .text-center { text-align:center; }
+    .mt-8  { margin-top:8px; }
+    .mt-16 { margin-top:16px; }
+    .mt-24 { margin-top:24px; }
+
+    /* mobile nav */
+    @media(max-width:680px){
+      .nav-links { display:none; flex-direction:column; position:absolute; top:64px; left:0; right:0; background:var(--cream); border-bottom:1px solid var(--border); padding:20px 5vw; gap:16px; }
+      .nav-links.open { display:flex; }
+      .hamburger { display:flex; }
+    }
+  </style>
 </head>
 <body>
-  <div class="shell">
-    <nav class="topbar"><div class="brand"><span class="brand-mark">V.</span><span>VOICE<span class="dot">.</span> THINK<span class="dot">.</span> AUTOMATE<span class="dot">.</span></span></div><span class="local-pill"><i></i> LOCAL PC CONNECTED</span></nav>
-    <main>
-      <section class="hero"><div><p class="eyebrow">HANDS-FREE DESKTOP CONTROL · {{ os_name|upper }}</p><h1>Your voice.<br><em>Your command.</em></h1><p class="sub">A voice-first assistant that turns everyday speech into real desktop actions. No keyboard or mouse needed for supported commands.</p><div class="hero-tags"><span>ONLINE SPEECH RECOGNITION</span><span>REAL PC ACTIONS</span><span>ALLOWLISTED COMMANDS</span></div></div>
-      <div class="orb-wrap"><div class="orb"><div class="orb-core"><span>V</span></div><div class="ring ring-a"></div><div class="ring ring-b"></div><div class="ring ring-c"></div></div><div class="orb-caption"><span class="live-dot"></span> VOICE ENGINE READY</div></div></section>
-      <section class="workspace">
-        <div class="panel control-panel"><div class="panel-head"><div><p class="eyebrow">CONTROL CENTER</p><h2>Talk to your PC</h2></div><span class="status-badge" id="statusBadge">READY</span></div>
-          <button class="mic-button" id="micButton" aria-label="Start voice recognition"><span class="mic-icon">🎙</span><span id="micLabel">Start listening</span><small>Click, then speak clearly</small></button>
-          <div class="wave" id="wave" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
-          <label for="transcript">RECOGNIZED SPEECH / TYPE A COMMAND</label><div class="command-entry"><input id="transcript" placeholder="e.g. Open Notepad" autocomplete="off"><button id="runButton">Run ↗</button></div>
-          <p class="hint" id="hint">Voice recognition needs internet and browser microphone permission. PC actions run locally through the Python backend.</p>
-          <div class="result" id="result" role="status">Waiting for your command…</div>
-        </div>
-        <div class="panel history-panel"><div class="panel-head"><div><p class="eyebrow">ACTIVITY</p><h2>Command history</h2></div><button class="text-button" id="clearHistory">Clear</button></div><div id="history" class="history"><div class="empty">Your executed commands will appear here.</div></div><div class="security-note"><span>⌁</span><div><strong>Safety by design</strong><p>Only supported actions run. Spoken text is never executed as a terminal command.</p></div></div></div>
-      </section>
-      <section class="commands-section"><div class="section-heading"><div><p class="eyebrow">TRY A COMMAND</p><h2>One sentence. One action.</h2></div><p>Tap any command to send it to your PC.</p></div><div class="command-grid">
-        <button class="command-card" data-command="Open Notepad"><span>▤</span><strong>Open Notepad</strong><small>Launch an app</small><b>↗</b></button>
-        <button class="command-card" data-command="Scroll down"><span>↓</span><strong>Scroll down</strong><small>Scroll current window</small><b>↗</b></button>
-        <button class="command-card" data-command="Search for artificial intelligence"><span>⌕</span><strong>Search the web</strong><small>Open browser search</small><b>↗</b></button>
-        <button class="command-card" data-command="Increase volume"><span>◖))</span><strong>Increase volume</strong><small>Adjust system volume</small><b>↗</b></button>
-        <button class="command-card" data-command="Go back"><span>←</span><strong>Go back</strong><small>Navigate previous</small><b>↗</b></button>
-        <button class="command-card" data-command="Open Calculator"><span>▦</span><strong>Open Calculator</strong><small>Launch a utility</small><b>↗</b></button>
-      </div></section>
-      <section class="workflow"><div><p class="eyebrow">HOW IT WORKS</p><h2>Speech in.<br><em>Action out.</em></h2></div><div class="steps"><div><b>01</b><strong>Listen</strong><span>Browser speech recognition</span></div><i>→</i><div><b>02</b><strong>Understand</strong><span>Recognized command text</span></div><i>→</i><div><b>03</b><strong>Execute</strong><span>Local Python allowlist</span></div><i>→</i><div><b>04</b><strong>Confirm</strong><span>Result shown on screen</span></div></div></section>
-      <footer><span>VOICE. THINK. AUTOMATE.</span><span>Prototype · Local actions require your permission and active desktop session.</span></footer>
-    </main>
+
+<!-- ── Nav ──────────────────────────────────────────────────────────── -->
+<nav>
+  <div class="nav-logo">
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+      <circle cx="14" cy="14" r="13" stroke="#4A90D9" stroke-width="2"/>
+      <rect x="10" y="6" width="8" height="12" rx="4" fill="#4A90D9"/>
+      <path d="M7 15a7 7 0 0014 0" stroke="#4A90D9" stroke-width="2" stroke-linecap="round"/>
+      <line x1="14" y1="22" x2="14" y2="25" stroke="#4A90D9" stroke-width="2" stroke-linecap="round"/>
+      <line x1="10" y1="25" x2="18" y2="25" stroke="#4A90D9" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    VoiceAssist
   </div>
-  <script src="{{ url_for('static', filename='app.js') }}"></script>
-</body></html>
+  <div class="nav-links" id="navLinks">
+    <a href="#dashboard">Dashboard</a>
+    <a href="#features">Features</a>
+    <a href="#how">How It Works</a>
+    <a href="#roadmap">Roadmap</a>
+    <a href="#team">Team</a>
+    <button class="theme-btn" onclick="toggleTheme()">🌗 Theme</button>
+  </div>
+  <button class="hamburger" onclick="toggleMenu()" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<!-- ── Hero ─────────────────────────────────────────────────────────── -->
+<section id="hero">
+  <div class="hero-copy">
+    <span class="section-label">Offline-First · Hands-Free · Tri-City AI-Thon 2026</span>
+    <h1>VOICE.<br><span>THINK.</span><br>AUTOMATE.</h1>
+    <p>Your PC. Your Voice. Your Control.<br>Control everyday computer tasks through natural voice commands, with an offline-first approach for supported operations.</p>
+    <div class="hero-btns">
+      <button class="btn-primary" onclick="document.getElementById('dashboard').scrollIntoView({behavior:'smooth'})">🎙️ Launch Voice Assistant</button>
+      <button class="btn-secondary" onclick="document.getElementById('features').scrollIntoView({behavior:'smooth'})">Explore Features</button>
+    </div>
+  </div>
+  <div class="hero-visual">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:24px;">
+      <div class="mic-wrap">
+        <div class="ring"></div>
+        <div class="ring"></div>
+        <div class="ring"></div>
+        <div class="mic-circle">
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+            <rect x="16" y="4" width="16" height="24" rx="8" fill="white"/>
+            <path d="M10 26a14 14 0 0028 0" stroke="white" stroke-width="3" stroke-linecap="round"/>
+            <line x1="24" y1="40" x2="24" y2="44" stroke="white" stroke-width="3" stroke-linecap="round"/>
+            <line x1="17" y1="44" x2="31" y2="44" stroke="white" stroke-width="3" stroke-linecap="round"/>
+          </svg>
+        </div>
+      </div>
+      <div class="waveform">
+        <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+        <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+        <div class="bar"></div><div class="bar"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Dashboard ────────────────────────────────────────────────────── -->
+<section id="dashboard">
+  <span class="section-label">Interactive Demo</span>
+  <h2>Voice Assistant Dashboard</h2>
+  <p class="mt-8">Try the assistant below. <strong>Demo Mode</strong> simulates the command workflow — actual PC control requires the companion desktop backend.</p>
+
+  <div class="demo-notice">
+    ⚡ <strong>Demo Mode Active</strong> — Commands are simulated. No actual PC actions are executed. Connect the local backend on port 8765 for real control.
+  </div>
+
+  <div class="dashboard-grid">
+    <!-- Left panel: mic + transcript -->
+    <div class="panel">
+      <h3>🎙️ Voice Input</h3>
+      <div class="mic-btn-wrap">
+        <button class="mic-btn" id="micBtn" onclick="toggleListening()" title="Start / Stop listening">
+          <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+            <rect x="12" y="3" width="12" height="18" rx="6" fill="white"/>
+            <path d="M7 19a11 11 0 0022 0" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="18" y1="30" x2="18" y2="33" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="13" y1="33" x2="23" y2="33" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <span class="status-badge idle" id="statusBadge"><span class="dot"></span> Idle</span>
+      </div>
+
+      <h3 style="margin-top:20px;">📝 Transcript</h3>
+      <div class="transcript-box" id="transcript">Speak or click a quick command…</div>
+
+      <h3 style="margin-top:16px;">🤖 Assistant Response</h3>
+      <div class="response-box" id="response">Ready. Awaiting your command.</div>
+    </div>
+
+    <!-- Right panel: quick commands + history -->
+    <div class="panel">
+      <h3>⚡ Quick Commands</h3>
+      <div class="quick-cmds">
+        <button class="qcmd" onclick="runDemo('Open Notepad')">📝 Open Notepad</button>
+        <button class="qcmd" onclick="runDemo('Scroll down')">⬇️ Scroll Down</button>
+        <button class="qcmd" onclick="runDemo('Search for artificial intelligence')">🔍 Search AI</button>
+        <button class="qcmd" onclick="runDemo('Increase volume')">🔊 Volume Up</button>
+        <button class="qcmd" onclick="runDemo('Go back')">◀️ Go Back</button>
+        <button class="qcmd" onclick="runDemo('Open Chrome')">🌐 Open Chrome</button>
+        <button class="qcmd" onclick="runDemo('Take screenshot')">📸 Screenshot</button>
+        <button class="qcmd" onclick="runDemo('Minimize window')">🪟 Minimize</button>
+      </div>
+
+      <h3 style="margin-top:20px;">📋 Command History</h3>
+      <ul class="history-list" id="historyList">
+        <li style="font-size:.82rem;color:var(--mid);padding:8px 0;">No commands yet.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ── Examples ──────────────────────────────────────────────────────── -->
+<section id="examples">
+  <span class="section-label">Command Reference</span>
+  <h2>Voice Command Examples</h2>
+  <p class="mt-8">Click any card to simulate the command in the dashboard above.</p>
+  <div class="example-grid">
+    <div class="example-card" onclick="demoAndScroll('Open Notepad')">
+      <span class="cmd-label">App Control</span>
+      <span class="cmd-text">"Open Notepad"</span>
+      <span class="cmd-desc">Launches the specified application on your PC.</span>
+    </div>
+    <div class="example-card" onclick="demoAndScroll('Scroll down')">
+      <span class="cmd-label">Navigation</span>
+      <span class="cmd-text">"Scroll down"</span>
+      <span class="cmd-desc">Scrolls the active window or page downward.</span>
+    </div>
+    <div class="example-card" onclick="demoAndScroll('Search for artificial intelligence')">
+      <span class="cmd-label">Web Search</span>
+      <span class="cmd-text">"Search for artificial intelligence"</span>
+      <span class="cmd-desc">Opens a browser search for the specified query.</span>
+    </div>
+    <div class="example-card" onclick="demoAndScroll('Increase volume')">
+      <span class="cmd-label">System</span>
+      <span class="cmd-text">"Increase volume"</span>
+      <span class="cmd-desc">Raises the system audio level by a preset step.</span>
+    </div>
+    <div class="example-card" onclick="demoAndScroll('Go back')">
+      <span class="cmd-label">Navigation</span>
+      <span class="cmd-text">"Go back"</span>
+      <span class="cmd-desc">Triggers the back action in the active window.</span>
+    </div>
+  </div>
+</section>
+
+<!-- ── Features ─────────────────────────────────────────────────────── -->
+<section id="features" style="background:var(--card-bg); border-top:1px solid var(--border); border-bottom:1px solid var(--border);">
+  <span class="section-label">Capabilities</span>
+  <h2>What VoiceAssist Can Do</h2>
+  <div class="feat-grid">
+    <div class="feat-card">
+      <div class="feat-icon">🎙️</div>
+      <h3>Smart Voice Control</h3>
+      <p>Trigger supported computer actions using speech — open apps, scroll pages, adjust volume, search the web, and navigate windows hands-free.</p>
+      <span class="feat-badge live">✔ Implemented</span>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">📡</div>
+      <h3>Offline-First Approach</h3>
+      <p>Local execution for supported commands when the configured speech engine and backend allow it — no internet required for core actions.</p>
+      <span class="feat-badge live">✔ Implemented</span>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">⚙️</div>
+      <h3>Custom Workflows</h3>
+      <p>Design reusable command sequences for repetitive tasks, chaining multiple actions into a single voice trigger.</p>
+      <span class="feat-badge planned">🗓 Planned</span>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🌐</div>
+      <h3>Multilingual Vision</h3>
+      <p>Planned improvements for Telugu, Hindi, and English support, plus future Linux and macOS compatibility beyond the current Windows focus.</p>
+      <span class="feat-badge planned">🗓 Planned</span>
+    </div>
+  </div>
+</section>
+
+<!-- ── How It Works ──────────────────────────────────────────────────── -->
+<section id="how">
+  <span class="section-label">Process</span>
+  <h2>How It Works</h2>
+  <div class="flow">
+    <div class="flow-step">
+      <div class="flow-icon">🎤</div>
+      <h4>Voice Input</h4>
+      <p>User speaks a natural language command through the microphone.</p>
+    </div>
+    <div class="flow-step">
+      <div class="flow-icon">🧠</div>
+      <h4>Speech Recognition</h4>
+      <p>Local or browser-based engine transcribes audio to text in real time.</p>
+    </div>
+    <div class="flow-step">
+      <div class="flow-icon">⚙️</div>
+      <h4>Command Processing</h4>
+      <p>Intent parser maps the transcript to a validated, safe command action.</p>
+    </div>
+    <div class="flow-step">
+      <div class="flow-icon">💻</div>
+      <h4>PC Automation</h4>
+      <p>Desktop backend executes only explicitly whitelisted, confirmed actions.</p>
+    </div>
+    <div class="flow-step">
+      <div class="flow-icon">✅</div>
+      <h4>User Feedback</h4>
+      <p>Confirmation and result are shown in the dashboard and spoken aloud.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── Architecture ──────────────────────────────────────────────────── -->
+<section id="arch">
+  <span class="section-label">Technical Architecture</span>
+  <h2>System Design</h2>
+  <p class="mt-8">The frontend communicates with a local desktop backend over a trusted WebSocket. The backend validates every command before execution — no arbitrary shell commands are ever run from recognized speech.</p>
+  <div class="arch-diagram">
+    <div class="arch-layer">
+      <div class="arch-label">Frontend</div>
+      <div class="arch-cells">
+        <div class="arch-cell"><h4>Web Interface</h4><p>HTML / CSS / JS — this page</p></div>
+        <div class="arch-cell"><h4>Speech API</h4><p>Browser Web Speech API (with fallback notice)</p></div>
+        <div class="arch-cell"><h4>WebSocket Client</h4><p>Connects to local backend on ws://localhost:8765</p></div>
+      </div>
+    </div>
+    <div class="arch-layer">
+      <div class="arch-label">Backend</div>
+      <div class="arch-cells">
+        <div class="arch-cell"><h4>Command Parser</h4><p>Intent classification & parameter extraction</p></div>
+        <div class="arch-cell"><h4>Whitelist Engine</h4><p>Only explicitly allowed actions are dispatched</p></div>
+        <div class="arch-cell"><h4>Confirmation Gate</h4><p>Sensitive actions require explicit user approval</p></div>
+      </div>
+    </div>
+    <div class="arch-layer">
+      <div class="arch-label">Automation</div>
+      <div class="arch-cells">
+        <div class="arch-cell"><h4>PC Automation Layer</h4><p>OS-level interaction (platform TBD)</p></div>
+        <div class="arch-cell"><h4>Response System</h4><p>Text-to-speech & dashboard feedback</p></div>
+        <div class="arch-cell"><h4>Logging</h4><p>Local command audit trail</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Benefits ─────────────────────────────────────────────────────── -->
+<section id="benefits">
+  <span class="section-label">Who It's For</span>
+  <h2>Benefits & Target Users</h2>
+  <div class="benefit-grid">
+    <div class="benefit-card">
+      <div class="benefit-icon">🎓</div>
+      <h3>Students</h3>
+      <p>Navigate notes, search resources, and switch windows without leaving a study flow or breaking focus.</p>
+    </div>
+    <div class="benefit-card">
+      <div class="benefit-icon">💼</div>
+      <h3>Professionals</h3>
+      <p>Control applications during presentations, calls, or while multitasking — no keyboard interruptions.</p>
+    </div>
+    <div class="benefit-card">
+      <div class="benefit-icon">♿</div>
+      <h3>Accessibility</h3>
+      <p>Provides hands-free PC interaction for users with motor impairments or those who prefer voice control.</p>
+    </div>
+    <div class="benefit-card">
+      <div class="benefit-icon">🚀</div>
+      <h3>Power Users</h3>
+      <p>Automate repetitive workflows and command sequences with a single spoken phrase.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── Roadmap ───────────────────────────────────────────────────────── -->
+<section id="roadmap" style="background:var(--card-bg); border-top:1px solid var(--border); border-bottom:1px solid var(--border);">
+  <span class="section-label">Roadmap</span>
+  <h2>Project Timeline</h2>
+  <div class="timeline">
+    <div class="tl-item">
+      <div class="tl-left"><div class="tl-dot"></div><div class="tl-line"></div></div>
+      <div class="tl-body">
+        <h4>Core Voice Control — Windows</h4>
+        <p>Open apps, scroll, search, volume control, window navigation via speech.</p>
+        <span class="tl-tag done">✔ Complete</span>
+      </div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-left"><div class="tl-dot"></div><div class="tl-line"></div></div>
+      <div class="tl-body">
+        <h4>Offline Speech Engine Integration</h4>
+        <p>Replace browser Speech API dependency with a fully local engine for privacy-first operation.</p>
+        <span class="tl-tag in-prog">🔄 In Progress</span>
+      </div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-left"><div class="tl-dot future"></div><div class="tl-line"></div></div>
+      <div class="tl-body">
+        <h4>Custom Workflow Builder</h4>
+        <p>Visual UI to chain multiple commands into single-trigger sequences.</p>
+        <span class="tl-tag planned">🗓 Q1 2027</span>
+      </div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-left"><div class="tl-dot future"></div><div class="tl-line"></div></div>
+      <div class="tl-body">
+        <h4>Telugu & Hindi Language Support</h4>
+        <p>Multilingual command recognition for Telugu, Hindi, and English.</p>
+        <span class="tl-tag planned">🗓 Q2 2027</span>
+      </div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-left"><div class="tl-dot future"></div><div class="tl-line"></div></div>
+      <div class="tl-body">
+        <h4>Linux & macOS Support</h4>
+        <p>Cross-platform backend expansion beyond Windows.</p>
+        <span class="tl-tag planned">🗓 Q3 2027</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Team ──────────────────────────────────────────────────────────── -->
+<section id="team" class="text-center">
+  <span class="section-label">The Builders</span>
+  <h2>Team TechBytes</h2>
+  <p class="mt-8">Built with ❤️ for Tri-City AI-Thon 2026</p>
+  <div class="team-badge">🏆 Team TechBytes</div>
+  <p class="hackathon-tag">Tri-City AI-Thon 2026 — Offline-First Voice Assistant Track</p>
+  <p class="mt-16" style="max-width:480px;margin-left:auto;margin-right:auto;">
+    A student-led team passionate about making computers more accessible and efficient through natural language interaction and intelligent automation.
+  </p>
+</section>
+
+<!-- ── Footer ───────────────────────────────────────────────────────── -->
+<footer>
+  <div class="footer-grid">
+    <div>
+      <h4>VoiceAssist</h4>
+      <p style="color:rgba(255,255,255,.5);font-size:.85rem;line-height:1.7;">Offline-first voice control for your PC. Built by Team TechBytes for Tri-City AI-Thon 2026.</p>
+    </div>
+    <div>
+      <h4>Navigate</h4>
+      <ul>
+        <li><a href="#dashboard">Dashboard</a></li>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#how">How It Works</a></li>
+        <li><a href="#roadmap">Roadmap</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Project</h4>
+      <ul>
+        <li><a href="#arch">Architecture</a></li>
+        <li><a href="#benefits">Benefits</a></li>
+        <li><a href="#team">Team</a></li>
+        <li><a href="#examples">Commands</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2026 Team TechBytes · Tri-City AI-Thon</p>
+    <p>VOICE. THINK. AUTOMATE.</p>
+  </div>
+</footer>
+
+<!-- ── Scripts ───────────────────────────────────────────────────────── -->
+<script>
+/* ── Theme toggle ─────────────────────────────────────────────────── */
+function toggleTheme(){
+  const html = document.documentElement;
+  const cur  = html.getAttribute('data-theme');
+  html.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
+  try { localStorage.setItem('va-theme', html.getAttribute('data-theme')); } catch(e){}
+}
+try {
+  const saved = localStorage.getItem('va-theme');
+  if(saved) document.documentElement.setAttribute('data-theme', saved);
+} catch(e){}
+
+/* ── Mobile menu ──────────────────────────────────────────────────── */
+function toggleMenu(){
+  document.getElementById('navLinks').classList.toggle('open');
+}
+
+/* ── Demo command responses ───────────────────────────────────────── */
+const RESPONSES = {
+  'Open Notepad':                        '✅ [Demo] Sending "open notepad" to backend. In real mode, Notepad.exe would launch.',
+  'Scroll down':                         '✅ [Demo] Sending "scroll_down" to backend. Active window would scroll down 300px.',
+  'Search for artificial intelligence':  '✅ [Demo] Sending "web_search" to backend. Browser would open: google.com/search?q=artificial+intelligence',
+  'Increase volume':                     '✅ [Demo] Sending "volume_up" to backend. System volume would increase by 10%.',
+  'Go back':                             '✅ [Demo] Sending "navigate_back" to backend. Active window would receive Alt+Left.',
+  'Open Chrome':                         '✅ [Demo] Sending "open chrome" to backend. Google Chrome would launch.',
+  'Take screenshot':                     '✅ [Demo] Sending "screenshot" to backend. Screenshot would be saved to Desktop.',
+  'Minimize window':                     '✅ [Demo] Sending "minimize" to backend. Active window would minimize.',
+};
+
+let listening = false;
+let recognition = null;
+
+function setStatus(type, label){
+  const b = document.getElementById('statusBadge');
+  b.className = 'status-badge ' + type;
+  b.innerHTML = '<span class="dot"></span> ' + label;
+}
+
+function addHistory(cmd, statusClass, statusLabel){
+  const ul = document.getElementById('historyList');
+  if(ul.querySelector('li[style]')) ul.innerHTML = '';
+  const li = document.createElement('li');
+  li.className = 'history-item';
+  li.innerHTML = `<span>${cmd}</span><span class="hist-status ${statusClass}">${statusLabel}</span>`;
+  ul.prepend(li);
+}
+
+function runDemo(cmd){
+  document.getElementById('transcript').textContent = cmd;
+  document.getElementById('transcript').classList.add('active');
+  setStatus('proc', 'Processing');
+  document.getElementById('response').textContent = '⏳ Processing…';
+  setTimeout(()=>{
+    const resp = RESPONSES[cmd] || `✅ [Demo] Command "${cmd}" received and queued.`;
+    document.getElementById('response').textContent = resp;
+    setStatus('done', 'Completed');
+    addHistory(cmd, 'sim', 'Simulated');
+    setTimeout(()=>{
+      setStatus('idle','Idle');
+      document.getElementById('transcript').classList.remove('active');
+    }, 3000);
+  }, 900);
+}
+
+function demoAndScroll(cmd){
+  document.getElementById('dashboard').scrollIntoView({behavior:'smooth'});
+  setTimeout(()=>runDemo(cmd), 500);
+}
+
+/* ── Real Speech Recognition (if available) ───────────────────────── */
+function toggleListening(){
+  if(!listening){ startListening(); } else { stopListening(); }
+}
+
+function startListening(){
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SpeechRecognition){
+    document.getElementById('response').textContent =
+      '⚠️ Your browser does not support the Web Speech API. Try Chrome or Edge, or use the quick commands above.';
+    return;
+  }
+  recognition = new SpeechRecognition();
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.lang = 'en-US';
+
+  recognition.onstart = ()=>{
+    listening = true;
+    document.getElementById('micBtn').classList.add('listening');
+    setStatus('listen','Listening…');
+    document.getElementById('transcript').textContent = '🎤 Listening…';
+    document.getElementById('transcript').classList.add('active');
+  };
+  recognition.onresult = (e)=>{
+    const t = Array.from(e.results).map(r=>r[0].transcript).join('');
+    document.getElementById('transcript').textContent = t;
+    if(e.results[e.results.length-1].isFinal){
+      processVoiceCommand(t.trim());
+    }
+  };
+  recognition.onerror = (e)=>{
+    let msg = '⚠️ Recognition error: ' + e.error;
+    if(e.error==='not-allowed') msg = '🚫 Microphone permission denied. Allow mic access and try again.';
+    if(e.error==='no-speech')   msg = '🔇 No speech detected. Please speak clearly.';
+    document.getElementById('response').textContent = msg;
+    setStatus('err','Error');
+    stopListening();
+  };
+  recognition.onend = ()=>{ stopListening(); };
+  recognition.start();
+}
+
+function stopListening(){
+  listening = false;
+  if(recognition){ try{ recognition.stop(); }catch(e){} }
+  document.getElementById('micBtn').classList.remove('listening');
+  setStatus('idle','Idle');
+  document.getElementById('transcript').classList.remove('active');
+}
+
+function processVoiceCommand(text){
+  if(!text){ return; }
+  setStatus('proc','Processing');
+  document.getElementById('response').textContent = '⏳ Processing: "' + text + '"';
+
+  // Try to match a known demo command
+  const match = Object.keys(RESPONSES).find(k=>
+    text.toLowerCase().includes(k.toLowerCase().split(' ').slice(0,2).join(' '))
+  );
+  setTimeout(()=>{
+    if(match){
+      document.getElementById('response').textContent = RESPONSES[match];
+      addHistory(text, 'sim', 'Simulated');
+    } else {
+      document.getElementById('response').textContent =
+        `⚠️ [Demo] Command "${text}" not in the demo whitelist. Connect the backend for full support.`;
+      addHistory(text, 'err', 'Unknown');
+    }
+    setStatus('done','Completed');
+    setTimeout(()=>setStatus('idle','Idle'), 3000);
+  }, 800);
+}
+</script>
+</body>
+</html>
